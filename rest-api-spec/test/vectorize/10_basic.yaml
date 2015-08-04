@@ -1,0 +1,25 @@
+---
+"Basic vectorize":
+  - do:
+      index:
+          index:  test_1
+          type:   test
+          id:     1
+          body:   { foo: bar, label: y }
+
+  - do:
+      index:
+          index:  test_1
+          type:   test
+          id:     2
+          body:   { foo: baz, label: y }
+
+  - do:
+      index:
+          index:  test_1
+          type:   test
+          id:     3
+          body:   { foo: foo, label: n }
+
+  - do:
+      indices.refresh: {}

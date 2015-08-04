@@ -1,0 +1,35 @@
+{
+  "vectorize": {
+    "methods": ["GET", "POST"],
+    "url": {
+      "path": "/{index}/{type}/{id}/_vectorize",
+      "parts": {
+        "index": {
+          "type" : "string",
+          "required": true,
+          "description" : "The index to fetch the vectorize input"
+        },
+        "type": {
+          "type" : "string",
+          "required": true,
+          "description" : "The type to fetch the vectorize input"
+        },
+        "id": {
+          "type" : "string",
+          "required": true,
+          "description" : "The id to fetch the vectorize input"
+        }
+      },
+      "params": {
+        "routing": {
+          "type" : "string",
+          "description" : "Specific routing value"
+        }
+      }
+    },
+    "body": {
+      "description" : "The vectorizer specification",
+      "required": true
+    }
+  }
+}
