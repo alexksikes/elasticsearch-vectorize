@@ -20,6 +20,7 @@
 package org.elasticsearch;
 
 import org.elasticsearch.bootstrap.ElasticsearchF;
+import org.elasticsearch.plugin.fetchtermvectors.FetchTermVectorsPlugin;
 import org.elasticsearch.plugin.vectorize.VectorizePlugin;
 
 /**
@@ -33,7 +34,7 @@ public class VectorizeRunner {
         System.setProperty("es.shield.enabled", "false");
         System.setProperty("es.security.manager.enabled", "false");
         System.setProperty("es.plugins.load_classpath_plugins", "false");
-        System.setProperty("es.plugin.types", VectorizePlugin.class.getName());
+        System.setProperty("es.plugin.types", VectorizePlugin.class.getName() + "," + FetchTermVectorsPlugin.class.getName());
         System.setProperty("es.cluster.name", VectorizeRunner.class.getSimpleName());
         
         ElasticsearchF.main(new String[]{"start"});
