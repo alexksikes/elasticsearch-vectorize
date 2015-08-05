@@ -21,17 +21,15 @@ package org.elasticsearch.rest.action.vectorize;
 
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.vectorize.SearchVectorizeResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentBuilderString;
 import org.elasticsearch.rest.*;
 import org.elasticsearch.rest.action.search.RestSearchAction;
 import org.elasticsearch.rest.action.support.RestBuilderListener;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHitField;
-import org.elasticsearch.search.SearchHits;
 
 import java.io.IOException;
 
@@ -43,13 +41,6 @@ import static org.elasticsearch.rest.RestStatus.OK;
  *
  */
 public class RestSearchVectorizeAction extends BaseRestHandler {
-
-    static final class Fields {
-        static final XContentBuilderString _SCROLL_ID = new XContentBuilderString("_scroll_id");
-        static final XContentBuilderString TOOK = new XContentBuilderString("took");
-        static final XContentBuilderString TIMED_OUT = new XContentBuilderString("timed_out");
-        static final XContentBuilderString TERMINATED_EARLY = new XContentBuilderString("terminated_early");
-    }
 
     @Inject
     public RestSearchVectorizeAction(Settings settings, RestController controller, Client client) {
@@ -68,36 +59,9 @@ public class RestSearchVectorizeAction extends BaseRestHandler {
         client.search(searchRequest, new RestBuilderListener<SearchResponse>(channel) {
             @Override
             public RestResponse buildResponse(SearchResponse resp, XContentBuilder builder) throws Exception {
-                // and build a matrix from the response
-                builder.startObject();
-                if (resp.getScrollId() != null) {
-                    builder.field(Fields._SCROLL_ID, resp.getScrollId());
-                }
-                builder.field(Fields.TOOK, resp.getTookInMillis());
-                builder.field(Fields.TIMED_OUT, resp.isTimedOut());
-                if (resp.isTerminatedEarly() != null) {
-                    builder.field(Fields.TERMINATED_EARLY, resp.isTerminatedEarly());
-                }
-                buildDictMatrix(resp.getHits(), builder);
-                builder.endObject();
+                new SearchVectorizeResponse(resp).toXContent(builder, ToXContent.EMPTY_PARAMS);
                 return new BytesRestResponse(OK, builder);
             }
         });
-    }
-
-    private void buildDictMatrix(SearchHits hits, XContentBuilder builder) throws IOException {
-        int numCols = (int) hits.getAt(0).field("shape").values().get(0);
-        builder.field("shape", new int[]{hits.getHits().length, numCols});
-
-        builder.startArray("matrix");
-        for (SearchHit searchHitFields : hits) {
-            SearchHitField hitField = searchHitFields.field("matrix");
-            if (hitField == null) {
-                continue;
-            } else {
-                builder.value(hitField.value());
-            }
-        }
-        builder.endArray();
     }
 }

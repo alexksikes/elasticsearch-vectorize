@@ -27,6 +27,7 @@ import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.PreProcessModule;
 import org.elasticsearch.rest.RestModule;
 import org.elasticsearch.rest.action.vectorize.RestSearchVectorizeAction;
+import org.elasticsearch.rest.action.vectorize.RestSearchVectorizeScrollAction;
 import org.elasticsearch.rest.action.vectorize.RestVectorizeAction;
 
 public class VectorizeModule extends AbstractModule implements PreProcessModule {
@@ -37,6 +38,7 @@ public class VectorizeModule extends AbstractModule implements PreProcessModule 
             RestModule restModule = (RestModule) module;
             restModule.addRestAction(RestVectorizeAction.class);
             restModule.addRestAction(RestSearchVectorizeAction.class);
+            restModule.addRestAction(RestSearchVectorizeScrollAction.class);
         }
         if (module instanceof ActionModule) {
             ActionModule actionModule = (ActionModule) module;
