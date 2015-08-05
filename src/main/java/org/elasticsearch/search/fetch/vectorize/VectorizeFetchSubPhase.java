@@ -63,10 +63,13 @@ public class VectorizeFetchSubPhase implements FetchSubPhase {
         if (hitContext.hit().fieldsOrNull() == null) {
             hitContext.hit().fields(new HashMap<String, SearchHitField>());
         }
-        SearchHitField hitField = hitContext.hit().fields().get("matrix");
-        if (hitField == null) {
-            hitField = new InternalSearchHitField("matrix", new ArrayList<>(1));
-            hitContext.hit().fields().put("matrix", hitField);
+        SearchHitField matrix = hitContext.hit().fields().get("matrix");
+        SearchHitField shape = hitContext.hit().fields().get("shape");
+        if (matrix == null) {
+            matrix = new InternalSearchHitField("matrix", new ArrayList<>(1));
+            hitContext.hit().fields().put("matrix", matrix);
+            shape = new InternalSearchHitField("shape", new ArrayList<>(1));
+            hitContext.hit().fields().put("shape", shape);
         }
 
         String index = context.indexShard().indexService().index().getName();
@@ -84,7 +87,8 @@ public class VectorizeFetchSubPhase implements FetchSubPhase {
                 Vectorizer.Coord coord = vector.next();
                 out.put(String.valueOf(coord.x), coord.y);
             }
-            hitField.values().add(out);
+            shape.values().add(vector.getShape());
+            matrix.values().add(out);
         } catch (IOException e) {
             e.printStackTrace();
         }
