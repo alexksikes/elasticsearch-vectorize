@@ -20,8 +20,8 @@
 package org.elasticsearch.plugin.vectorize;
 
 import org.elasticsearch.action.ActionModule;
-import org.elasticsearch.action.vectorize.VectorizeAction;
 import org.elasticsearch.action.vectorize.TransportVectorizeAction;
+import org.elasticsearch.action.vectorize.VectorizeAction;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.PreProcessModule;

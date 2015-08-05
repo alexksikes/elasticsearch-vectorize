@@ -270,7 +270,7 @@ public class Vectorizer {
         return output.bytes();
     }
 
-    private static class Coord {
+    public static class Coord {
         public int x;
         public int y;
 

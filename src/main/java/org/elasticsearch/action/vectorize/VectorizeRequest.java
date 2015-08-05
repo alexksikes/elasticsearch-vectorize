@@ -31,7 +31,6 @@ import org.elasticsearch.index.VersionType;
 import org.elasticsearch.vectorize.Vectorizer;
 
 import java.io.IOException;
-import java.util.Set;
 
 import static org.elasticsearch.action.ValidateActions.addValidationError;
 
