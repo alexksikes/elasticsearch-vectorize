@@ -59,7 +59,7 @@ public class TermVectorsFetchSubPhase implements FetchSubPhase {
 
     @Override
     public void hitExecute(SearchContext context, HitContext hitContext) {
-        String field = context.getFetchSubPhaseContext(CONTEXT_FACTORY).getField();
+        String[] fields = context.getFetchSubPhaseContext(CONTEXT_FACTORY).getFields();
 
         if (hitContext.hit().fieldsOrNull() == null) {
             hitContext.hit().fields(new HashMap<String, SearchHitField>());
@@ -69,13 +69,22 @@ public class TermVectorsFetchSubPhase implements FetchSubPhase {
             hitField = new InternalSearchHitField(NAMES[0], new ArrayList<>(1));
             hitContext.hit().fields().put(NAMES[0], hitField);
         }
-        TermVectorsResponse termVector = context.indexShard().termVectorsService().getTermVectors(new TermVectorsRequest(context.indexShard().indexService().index().getName(), hitContext.hit().type(), hitContext.hit().id()), context.indexShard().indexService().index().getName());
+
+        String index = context.indexShard().indexService().index().getName();
+        String type = hitContext.hit().type();
+        String id = hitContext.hit().id();
+
+        TermVectorsResponse termVector = context.indexShard().termVectorsService().getTermVectors(
+                new TermVectorsRequest(index, type, id).selectedFields(fields), index);
+
+        Map<String, Integer> tv = new HashMap<>();
         try {
-            Map<String, Integer> tv = new HashMap<>();
-            TermsEnum terms = termVector.getFields().terms(field).iterator();
-            BytesRef term;
-            while ((term = terms.next()) != null) {
-                tv.put(term.utf8ToString(), terms.postings(null, null, PostingsEnum.ALL).freq());
+            for (String fieldName : fields) {
+                TermsEnum terms = termVector.getFields().terms(fieldName).iterator();
+                BytesRef term;
+                while ((term = terms.next()) != null) {
+                    tv.put(term.utf8ToString(), terms.postings(null, null, PostingsEnum.ALL).freq());
+                }
             }
             hitField.values().add(tv);
         } catch (IOException e) {

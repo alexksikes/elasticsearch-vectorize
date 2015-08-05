@@ -4,16 +4,16 @@ import org.elasticsearch.search.fetch.FetchSubPhaseContext;
 
 public class TermVectorsFetchContext extends FetchSubPhaseContext {
 
-    private String field = null;
+    private String[] field = null;
 
     public TermVectorsFetchContext() {
     }
 
-    public void setField(String field) {
+    public void setFields(String[] field) {
         this.field = field;
     }
 
-    public String getField() {
+    public String[] getFields() {
         return field;
     }
 }
