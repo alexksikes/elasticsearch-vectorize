@@ -56,10 +56,13 @@ public class RestSearchVectorizeAction extends BaseRestHandler {
         searchRequest = RestSearchAction.parseSearchRequest(request, parseFieldMatcher);
         searchRequest.extraSource("{\"_source\": false}");
 
+        final String sparseFormat = request.param("sparse_format", "dict");
         client.search(searchRequest, new RestBuilderListener<SearchResponse>(channel) {
             @Override
             public RestResponse buildResponse(SearchResponse resp, XContentBuilder builder) throws Exception {
-                new SearchVectorizeResponse(resp).toXContent(builder, ToXContent.EMPTY_PARAMS);
+                SearchVectorizeResponse searchVectorizeResponse = new SearchVectorizeResponse(resp);
+                searchVectorizeResponse.setFormat(sparseFormat);
+                searchVectorizeResponse.toXContent(builder, ToXContent.EMPTY_PARAMS);
                 return new BytesRestResponse(OK, builder);
             }
         });

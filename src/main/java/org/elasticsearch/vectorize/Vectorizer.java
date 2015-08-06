@@ -45,7 +45,7 @@ public class Vectorizer {
     public static final SparseVector EMPTY_SPARSE_VECTOR = new SparseVector();
     private static final String MAGIC_SEP = "@#@#@";  // used for the hack on numerical fields
 
-    private static class FieldStrings {
+    public static class FieldStrings {
         public static final XContentBuilderString SHAPE = new XContentBuilderString("shape");
         public static final XContentBuilderString MATRIX = new XContentBuilderString("matrix");
         public static final XContentBuilderString ROW = new XContentBuilderString("row");

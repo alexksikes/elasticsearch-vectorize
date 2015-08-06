@@ -77,10 +77,14 @@ public class RestSearchVectorizeScrollAction extends BaseRestHandler {
                 RestSearchScrollAction.buildFromContent(RestActions.getRestContent(request), searchScrollRequest);
             }
         }
+
+        final String sparseFormat = request.param("sparse_format", "dict");
         client.searchScroll(searchScrollRequest, new RestBuilderListener<SearchResponse>(channel) {
             @Override
             public RestResponse buildResponse(SearchResponse resp, XContentBuilder builder) throws Exception {
-                new SearchVectorizeResponse(resp).toXContent(builder, ToXContent.EMPTY_PARAMS);
+                SearchVectorizeResponse searchVectorizeResponse = new SearchVectorizeResponse(resp);
+                searchVectorizeResponse.setFormat(sparseFormat);
+                searchVectorizeResponse.toXContent(builder, ToXContent.EMPTY_PARAMS);
                 return new BytesRestResponse(OK, builder);
             }
         });
