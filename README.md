@@ -1,40 +1,51 @@
 Elasticsearch Vectorize Plugin
 ===================================
 
-To build a `SNAPSHOT` version, you can either build it with Maven:
-
-```bash
-mvn clean install -DskipTests
-bin/plugin install vectorize \
-       --url file:target/releases/elasticsearch-vectorize-X.X.X-SNAPSHOT.zip
-```
-
-Or grab the latest binary for the Elasticsearch [2.0](https://github.com/elastic/elasticsearch-vectorize/releases/download/v2.0.0-beta1/elasticsearch-vectorize-2.0.0-beta1-SNAPSHOT.zip) or for 
-[1.x](https://github.com/elastic/elasticsearch-vectorize/releases/download/v1.0.1/elasticsearch-vectorize-1.0.1-SNAPSHOT.zip) and install it:
-
-```bash
-cd /path/to/elasticsearch/
-bin/plugin install vectorize --url file:/path/to/downloads/elasticsearch-vectorize-X.X.X-SNAPSHOT.zip
-```
+The Vectorize Plugin is used to return a
+[document-term matrix](https://en.wikipedia.org/wiki/Document-term_matrix)
+according to some user given specification. In a document-term, the rows
+correspond to documents in an index and the columns correspond to terms, or
+more precisely to some numerical value associated with each term such as tf or
+tf-idf. Such a matrix could then be used as a dataset and loaded in your
+favorite statistical environment.
 
 Example of Usage
 ----------------
 
 ```js
-GET /imdb/movies/111161/_vectorize
+GET /index/type/_search_vectorize
 {
+  "query": {
+    "function_score": {
+      "functions": [
+        {
+          "random_score": {}
+        }
+      ]
+    }
+  },
+  "size": 1000,
   "vectorizer": [
     {
-      "field": "plot_keywords",
-      "span": ["pie", "sdfdsf", "police"]
+      "field": "text",
+      "span": [... list of terms ...],
+      "value": "term_freq"
     },
     {
-      "field": "year",
+      "field": "field_numeric_1",
       "span": 1
     },
     {
-      "field": "plot",
-      "span": ["two", "dsfsdf", "imprisoned","bond", "solace"]
+      "field": "field_numeric_2",
+      "span": 1
+    },
+    {
+      "field": "field_numeric_3",
+      "span": 5
+    },
+    {
+      "field": "label",
+      "span": 1
     }
   ]
 }
@@ -43,23 +54,55 @@ GET /imdb/movies/111161/_vectorize
 and the response:
 
 ```js
-GET /imdb/movies/111161/_vectorize
+    "shape": [1000, 9],
+    "vector: [
+        {"3": 5, "5": 2, "6": 0.55, 7": 1},
+        {"0": 2, "3": 1, "6": 0.21, 7": 1, "8": 1},
+        {"3": 5, "3": 5, "6": 0.45, 7": 0},
+        {"3": 5, "5": 3, "6": 0.56, 7": 0, "8": 1},
+        ...
+    ]
+```
+
+or in [COO](https://en.wikipedia.org/wiki/Sparse_matrix) sparse format:
+
+```js
+GET /index/type/_search_vectorize?sparse_format=coo
 {
-  "vectorizer": [
-    {
-      "field": "plot_keywords",
-      "span": ["pie", "sdfdsf", "police"]
-    },
-    {
-      "field": "year",
-      "span": 1
-    },
-    {
-      "field": "plot",
-      "span": ["two", "dsfsdf", "imprisoned","bond", "solace"]
-    }
-  ]
+    ...
 }
+```
+
+and the response:
+
+```json
+{
+    "shape": [1000, 9],
+    "matrix": {
+        "row": [0, 0, 0, 0, 1, 1, 1, 1, 1, ...],
+        "col": [3, 5, 6, 7, 0, 3, 6, 7, 8, ...],
+        "data": [5, 2, 0.55, 1, 2, 1, 0.21, 1, 1, ...]
+    }
+}
+```
+
+It supports all options that `search` supports including scan and scroll.
+There is also a `_vectorize` endpoint to get a single example with a Java API.
+For more performance (but requires more client side parsing), you can use the
+`vectorize-fetch` fetch sub-phase directly.
+
+Installation
+------------
+
+NOTE: This is still **very** alpha.
+
+If you'd still like to play with it, you can do so by building a `SNAPSHOT`
+version with Maven:
+
+```bash
+mvn clean install -DskipTests
+bin/plugin install vectorize \
+       --url file:target/releases/elasticsearch-vectorize-X.X.X-SNAPSHOT.zip
 ```
 
 License
