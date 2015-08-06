@@ -80,8 +80,9 @@ public class VectorizeService extends AbstractIndexShardComponent {
             return response;
         }
 
-        // finally return the response
+        // finally return the response and set the format
         response.setExists(exists(termVectorsResponse, getResult));
+        response.setFormat(request.format());
         return response;
     }
 

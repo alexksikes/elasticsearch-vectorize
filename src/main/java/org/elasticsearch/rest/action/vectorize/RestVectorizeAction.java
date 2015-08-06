@@ -73,5 +73,6 @@ public class RestVectorizeAction extends BaseRestHandler {
         vectorizeRequest.parent(request.param("parent"));
         vectorizeRequest.preference(request.param("preference"));
         vectorizeRequest.dfs(request.paramAsBoolean("dfs", vectorizeRequest.dfs()));
+        vectorizeRequest.format(request.param("sparse_format", vectorizeRequest.format().name()));
     }
 }

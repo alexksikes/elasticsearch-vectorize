@@ -48,6 +48,9 @@ public class Vectorizer {
     private static class FieldStrings {
         public static final XContentBuilderString SHAPE = new XContentBuilderString("shape");
         public static final XContentBuilderString MATRIX = new XContentBuilderString("matrix");
+        public static final XContentBuilderString ROW = new XContentBuilderString("row");
+        public static final XContentBuilderString COL = new XContentBuilderString("col");
+        public static final XContentBuilderString DATA = new XContentBuilderString("data");
     }
 
     public enum ValueOption {
@@ -365,6 +368,21 @@ public class Vectorizer {
             }
             builder.endObject();
             builder.endArray();
+
+            return builder;
+        }
+
+        public XContentBuilder toXContentCOO(XContentBuilder builder) throws IOException {
+            reset();
+
+            builder.field(FieldStrings.SHAPE, new Integer[]{1, shape});
+            builder.startObject(FieldStrings.MATRIX);
+            Tuple<int[], double[]> indicesAndValues = getIndicesAndValues();
+            builder.field(FieldStrings.ROW, new int[indicesAndValues.v1().length]);
+            builder.field(FieldStrings.COL, indicesAndValues.v1());
+            builder.field(FieldStrings.DATA, indicesAndValues.v2());
+            builder.endObject();
+
             return builder;
         }
     }

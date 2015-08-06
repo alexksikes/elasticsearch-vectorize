@@ -49,6 +49,7 @@ public class VectorizeResponse extends ActionResponse implements ToXContent {
     private boolean exists = false;
     private long tookInMillis;
     private BytesReference vector;
+    private VectorizeRequest.Format format;
 
     public VectorizeResponse() {
     }
@@ -86,6 +87,18 @@ public class VectorizeResponse extends ActionResponse implements ToXContent {
 
     public void setExists(boolean exists) {
         this.exists = exists;
+    }
+
+    public VectorizeRequest.Format getFormat() {
+        return this.format;
+    }
+
+    public void setFormat(VectorizeRequest.Format format) {
+        this.format = format;
+    }
+
+    public void setFormat(String format) {
+        this.format = VectorizeRequest.Format.valueOf(format.toUpperCase());
     }
 
     public void updateTookInMillis(long startTime) {
@@ -126,7 +139,11 @@ public class VectorizeResponse extends ActionResponse implements ToXContent {
     }
 
     public void buildVector(XContentBuilder builder, Params params) throws IOException {
-        getVector().toXContent(builder, params);
+        if (format == VectorizeRequest.Format.COO) {
+            getVector().toXContentCOO(builder);
+        } else {
+            getVector().toXContent(builder, params);
+        }
     }
 
     @Override
@@ -138,6 +155,7 @@ public class VectorizeResponse extends ActionResponse implements ToXContent {
         exists = in.readBoolean();
         tookInMillis = in.readVLong();
         vector = in.readBytesReference();
+        this.setFormat(in.readString());
     }
 
     @Override
@@ -149,5 +167,6 @@ public class VectorizeResponse extends ActionResponse implements ToXContent {
         out.writeBoolean(exists);
         out.writeVLong(tookInMillis);
         out.writeBytesReference(vector);
+        out.writeString(format.name());
     }
 }
