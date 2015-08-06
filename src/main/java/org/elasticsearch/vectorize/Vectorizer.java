@@ -129,6 +129,8 @@ public class Vectorizer {
     private int getValue(Object value) {
         if (value instanceof Boolean) {
             return ((Boolean) value).booleanValue() == true ? 1 : 0;
+        } else if (value instanceof Short) {
+            return ((Short) value).intValue();
         } else if (value instanceof Integer) {
             return ((Integer) value).intValue();
         } else if (value instanceof Long) {
