@@ -1,5 +1,5 @@
 Elasticsearch Vectorize Plugin
-===================================
+==============================
 
 The Vectorize Plugin is used to return a
 [document-term matrix](https://en.wikipedia.org/wiki/Document-term_matrix)
@@ -54,14 +54,16 @@ GET /index/type/_search_vectorize
 and the response:
 
 ```js
-    "shape": [1000, 9],
-    "vector: [
-        {"3": 5, "5": 2, "6": 0.55, 7": 1},
-        {"0": 2, "3": 1, "6": 0.21, 7": 1, "8": 1},
-        {"3": 5, "3": 5, "6": 0.45, 7": 0},
-        {"3": 5, "5": 3, "6": 0.56, 7": 0, "8": 1},
-        ...
-    ]
+{
+  "shape": [1000, 9],
+  "vector": [
+    {"3": 5, "5": 2, "6": 0.55, "7": 1},
+    {"0": 2, "3": 1, "6": 0.21, "7": 1, "8": 1},
+    {"3": 5, "3": 5, "6": 0.45, "7": 0},
+    {"3": 5, "5": 3, "6": 0.56, "7": 0, "8": 1},
+    ...
+  ]
+}
 ```
 
 or in [COO](https://en.wikipedia.org/wiki/Sparse_matrix) sparse format:
@@ -77,12 +79,12 @@ and the response:
 
 ```json
 {
-    "shape": [1000, 9],
-    "matrix": {
-        "row": [0, 0, 0, 0, 1, 1, 1, 1, 1, ...],
-        "col": [3, 5, 6, 7, 0, 3, 6, 7, 8, ...],
-        "data": [5, 2, 0.55, 1, 2, 1, 0.21, 1, 1, ...]
-    }
+  "shape": [1000, 9],
+  "matrix": {
+    "row": [0, 0, 0, 0, 1, 1, 1, 1, 1, ...],
+    "col": [3, 5, 6, 7, 0, 3, 6, 7, 8, ...],
+    "data": [5, 2, 0.55, 1, 2, 1, 0.21, 1, 1, ...]
+  }
 }
 ```
 
