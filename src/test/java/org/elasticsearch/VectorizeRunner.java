@@ -19,8 +19,8 @@
 
 package org.elasticsearch;
 
-import org.elasticsearch.bootstrap.ElasticsearchF;
-import org.elasticsearch.plugin.fetchtermvectors.FetchTermVectorsPlugin;
+import org.elasticsearch.bootstrap.Elasticsearch;
+import org.elasticsearch.plugin.fetch.FetchVectorizePlugin;
 import org.elasticsearch.plugin.vectorize.VectorizePlugin;
 
 /**
@@ -29,14 +29,15 @@ import org.elasticsearch.plugin.vectorize.VectorizePlugin;
 public class VectorizeRunner {
 
     public static void main(String[] args) throws Throwable {
+        System.setProperty("es.foreground", "yes");
         System.setProperty("es.http.cors.enabled", "true");
         System.setProperty("es.script.inline", "on");
         System.setProperty("es.shield.enabled", "false");
         System.setProperty("es.security.manager.enabled", "false");
         System.setProperty("es.plugins.load_classpath_plugins", "false");
-        System.setProperty("es.plugin.types", VectorizePlugin.class.getName() + "," + FetchTermVectorsPlugin.class.getName());
+        System.setProperty("es.plugin.types", VectorizePlugin.class.getName() + "," + FetchVectorizePlugin.class.getName());
         System.setProperty("es.cluster.name", VectorizeRunner.class.getSimpleName());
         
-        ElasticsearchF.main(new String[]{"start"});
+        Elasticsearch.main(new String[]{"start"});
     }
 }
