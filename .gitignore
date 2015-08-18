@@ -1,7 +1,7 @@
 /data
 /work
 /logs
-/.idea
+.idea
 /target
 .DS_Store
 *.iml
@@ -12,3 +12,4 @@
 /.local-execution-hints.log
 /.local-*-execution-hints.log
 /eclipse-build/
+*.pyc
