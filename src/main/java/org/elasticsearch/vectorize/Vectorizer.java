@@ -98,8 +98,9 @@ public class Vectorizer {
 
     public void add(Term term, TermStatistics termStatistics, int freq) {
         int column = getColumn(term);
-        if (column != -1) {
-            coordQ.add(new Coord(column, getValue(term.field(), termStatistics, freq)));
+        int data = getValue(term.field(), termStatistics, freq);
+        if (column != -1 && data != 0) {
+            coordQ.add(new Coord(column, data));
         }
     }
 
@@ -118,8 +119,9 @@ public class Vectorizer {
         int i = 0;
         for (Object value : values) {
             int column = getColumn(new Term(fieldName, MAGIC_SEP+i));
-            if (column != -1) {
-                coordQ.add(new Coord(column, getValue(value)));
+            int data = getValue(value);
+            if (column != -1 && data != 0) {
+                coordQ.add(new Coord(column, data));
             }
             i++;
         }

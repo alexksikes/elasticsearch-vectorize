@@ -80,12 +80,12 @@ public class VectorizeFetchSubPhase implements FetchSubPhase {
                 new VectorizeRequest(index, type, id).vectorizer(vectorizer)
         );
 
-        Map<String, Integer> out = new HashMap<>();
+        Map<Integer, Integer> out = new HashMap<>();
         try {
             Vectorizer.SparseVector vector = response.getVector();
             while (vector.hasNext()) {
                 Vectorizer.Coord coord = vector.next();
-                out.put(String.valueOf(coord.x), coord.y);
+                out.put(coord.x, coord.y);
             }
             shape.values().add(vector.getShape());
             matrix.values().add(out);

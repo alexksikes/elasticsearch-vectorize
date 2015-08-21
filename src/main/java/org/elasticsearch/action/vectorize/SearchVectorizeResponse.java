@@ -76,7 +76,12 @@ public class SearchVectorizeResponse extends ActionResponse implements ToXConten
             if (hitField == null) {
                 continue;
             } else {
-                builder.value(hitField.value());
+                builder.startObject();
+                Map<Integer, Integer> value = hitField.getValue();
+                for (Map.Entry<Integer, Integer> entry : value.entrySet()) {
+                    builder.field(entry.getKey().toString(), entry.getValue());
+                }
+                builder.endObject();
             }
         }
         builder.endArray();
@@ -94,7 +99,7 @@ public class SearchVectorizeResponse extends ActionResponse implements ToXConten
             if (hitField == null) {
                 continue;
             } else {
-                Map<String, Integer> value = ((Map<String, Integer>) (hitField.getValue()));
+                Map<Integer, Integer> value = hitField.getValue();
                 col.addAll(value.keySet());
                 data.addAll(value.values());
 
