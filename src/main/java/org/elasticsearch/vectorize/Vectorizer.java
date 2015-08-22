@@ -54,7 +54,7 @@ public class Vectorizer {
     }
 
     public enum ValueOption {
-        TERM_FREQ, DOC_FREQ, TTF
+        BOOLEAN, TERM_FREQ, DOC_FREQ, TTF
     }
 
     private List<Term> terms;
@@ -106,20 +106,32 @@ public class Vectorizer {
 
     private int getValue(String fieldName, @Nullable TermStatistics termStatistics, int freq) {
         ValueOption valueOption = valueOptions.get(fieldName);
-        if (valueOption == ValueOption.DOC_FREQ) {
-            return termStatistics != null ? (int) termStatistics.docFreq() : -1;  // -1 term stats not requested
-        } else if (valueOption == ValueOption.TTF) {
-            return termStatistics != null ? (int) termStatistics.totalTermFreq() : -1;  // -1 term stats not requested
+        switch(valueOption) {
+            case BOOLEAN:
+                return 1;
+            case TERM_FREQ:
+                return freq;
+            case DOC_FREQ:
+                return termStatistics != null ? (int) termStatistics.docFreq() : -1;  // -1 term stats not requested
+            case TTF:
+                return termStatistics != null ? (int) termStatistics.totalTermFreq() : -1;  // -1 term stats not requested
+            default:
+                throw new IllegalArgumentException("["+ valueOption + "] is not a valid valud option");
         }
-        return freq; // default
     }
 
     // nasty hack to make it work on numerical values
     public void add(String fieldName, List<Object> values) {
         int i = 0;
         for (Object value : values) {
-            int column = getColumn(new Term(fieldName, MAGIC_SEP+i));
+            // if we have a string, try to add with freq 1 and proceed
+            if (value instanceof String) {
+                add(new Term(fieldName, ((String) value)), null, 1);
+                continue;
+            }
             int data = getValue(value);
+            // for field data, not sure the order is the same as the order of the stored value, need to check that!
+            int column = getColumn(new Term(fieldName, MAGIC_SEP+i));
             if (column != -1 && data != 0) {
                 coordQ.add(new Coord(column, data));
             }
@@ -161,7 +173,7 @@ public class Vectorizer {
         String currentFieldName = null;
         String fieldName = null;
         List<String> words = new ArrayList<>();
-        ValueOption valueOption = null;
+        ValueOption valueOption = ValueOption.TERM_FREQ;
         boolean numerical = false;
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {
@@ -213,6 +225,8 @@ public class Vectorizer {
                 return ValueOption.DOC_FREQ;
             case "ttf":
                 return ValueOption.TTF;
+            case "boolean":
+                return ValueOption.BOOLEAN;
             default:
                 throw new ElasticsearchParseException("The parameter value " + text + " is not valid!");
         }
