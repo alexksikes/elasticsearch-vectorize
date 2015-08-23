@@ -158,6 +158,15 @@ public class Vectorizer {
         return terms.indexOf(term);
     }
 
+    public boolean needsTermStatistics() {
+        for (ValueOption valueOption : valueOptions.values()) {
+            if (valueOption == ValueOption.DOC_FREQ || valueOption == ValueOption.TTF) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static Vectorizer parse(XContentParser parser) throws IOException {
         List<Term> terms = new ArrayList<>();
         Map<String, ValueOption> valueOptions = new HashMap<>();

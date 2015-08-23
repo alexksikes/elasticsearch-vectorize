@@ -56,7 +56,7 @@ public class VectorizeRequest extends SingleShardRequest<VectorizeRequest> imple
 
     public VectorizeRequest(String index, String type, String id) {
         super(index);
-        this.termVectorsRequest = new TermVectorsRequest(index, type, id).termStatistics(true);
+        this.termVectorsRequest = new TermVectorsRequest(index, type, id);
     }
 
     @Override
@@ -89,7 +89,16 @@ public class VectorizeRequest extends SingleShardRequest<VectorizeRequest> imple
 
     public VectorizeRequest vectorizer(Vectorizer vectorizer) {
         this.vectorizer = vectorizer;
-        this.termVectorsRequest.selectedFields(vectorizer.getFields());
+        this.termVectorsRequest
+                .selectedFields(vectorizer.getFields())
+//                .realtime(false)
+                .fieldStatistics(vectorizer.needsTermStatistics())
+                .offsets(false)
+                .positions(false)
+                .termStatistics(vectorizer.needsTermStatistics())
+                .payloads(false)
+                .dfs(false)
+                .preference("_local");
         return this;
     }
 
