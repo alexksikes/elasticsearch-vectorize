@@ -167,6 +167,15 @@ public class Vectorizer {
         return false;
     }
 
+    public boolean allValueOptionsBoolean() {
+        for (ValueOption valueOption : valueOptions.values()) {
+            if (valueOption != ValueOption.BOOLEAN) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public static Vectorizer parse(XContentParser parser) throws IOException {
         List<Term> terms = new ArrayList<>();
         Map<String, ValueOption> valueOptions = new HashMap<>();
@@ -292,12 +301,16 @@ public class Vectorizer {
         Coord coord;
         output.writeVInt(size);
         output.writeVInt(coordQ.size());
-        while ((coord = coordQ.pop()) != null) {
+        while ((coord = popCoord()) != null) {
             output.writeVInt(coord.x);
             output.writeVInt(coord.y);
         }
         output.close();
         return output.bytes();
+    }
+
+    public Coord popCoord() {
+        return coordQ.pop();
     }
 
     public static class Coord {
@@ -334,6 +347,10 @@ public class Vectorizer {
         public SparseVector(BytesReference vectorInput) throws IOException {
             this.vectorInput = StreamInput.wrap(vectorInput);
             reset();
+        }
+
+        public SparseVector(CoordQ coordQ) {
+
         }
 
         private void reset() throws IOException {

@@ -1,8 +1,12 @@
 package org.elasticsearch.search.fetch.vectorize;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import org.elasticsearch.action.vectorize.VectorizeRequest;
 import org.elasticsearch.action.vectorize.VectorizeResponse;
+import org.elasticsearch.index.fielddata.AtomicFieldData;
+import org.elasticsearch.index.fielddata.ScriptDocValues;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.SearchHitField;
 import org.elasticsearch.search.SearchParseElement;
 import org.elasticsearch.search.fetch.FetchSubPhase;
@@ -15,6 +19,7 @@ import org.elasticsearch.vectorize.Vectorizer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class VectorizeFetchSubPhase implements FetchSubPhase {
@@ -76,21 +81,39 @@ public class VectorizeFetchSubPhase implements FetchSubPhase {
         String type = hitContext.hit().type();
         String id = hitContext.hit().id();
 
-        VectorizeResponse response = new VectorizeService(context.indexShard()).getVector(
-                new VectorizeRequest(index, type, id).vectorizer(vectorizer)
-        );
-
         Map<Integer, Integer> out = new HashMap<>();
-        try {
-            Vectorizer.SparseVector vector = response.getVector();
-            while (vector.hasNext()) {
-                Vectorizer.Coord coord = vector.next();
+        // if they are all boolean use field data fields instead
+        if (vectorizer.allValueOptionsBoolean()) {
+            List<String> fields = Lists.newArrayList(vectorizer.getFields());
+            fields.addAll(Lists.newArrayList(vectorizer.getNumericalFields()));
+            for (String field : fields) {
+                MappedFieldType fieldType = context.mapperService().smartNameFieldType(field);
+                if (fieldType != null) {
+                    AtomicFieldData data = context.fieldData().getForField(fieldType).load(hitContext.readerContext());
+                    ScriptDocValues values = data.getScriptValues();
+                    values.setNextDocId(hitContext.docId());
+                    vectorizer.add(field, values);
+                }
+            }
+            Vectorizer.Coord coord;
+            while ((coord = vectorizer.popCoord()) != null) {
                 out.put(coord.x, coord.y);
             }
-            shape.values().add(vector.getShape());
-            matrix.values().add(out);
-        } catch (IOException e) {
-            e.printStackTrace();
+        } else {  // otherwise use term vectors
+            VectorizeResponse response = new VectorizeService(context.indexShard()).getVector(
+                    new VectorizeRequest(index, type, id).vectorizer(vectorizer)
+            );
+            try {
+                Vectorizer.SparseVector vector = response.getVector();
+                while (vector.hasNext()) {
+                    Vectorizer.Coord coord = vector.next();
+                    out.put(coord.x, coord.y);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
+        shape.values().add(vectorizer.size());
+        matrix.values().add(out);
     }
 }
