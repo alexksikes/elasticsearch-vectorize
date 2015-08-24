@@ -19,14 +19,16 @@
 
 package org.elasticsearch.plugin.vectorize;
 
-import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.AbstractPlugin;
+import org.elasticsearch.action.ActionModule;
+import org.elasticsearch.action.vectorize.TransportVectorizeAction;
+import org.elasticsearch.action.vectorize.VectorizeAction;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.rest.RestModule;
+import org.elasticsearch.rest.action.vectorize.RestSearchVectorizeAction;
+import org.elasticsearch.rest.action.vectorize.RestSearchVectorizeScrollAction;
+import org.elasticsearch.rest.action.vectorize.RestVectorizeAction;
 
-import java.util.Arrays;
-import java.util.Collection;
-
-public class VectorizePlugin extends AbstractPlugin {
+public class VectorizePlugin extends Plugin {
 
     public static final String NAME = "vectorize";
 
@@ -40,8 +42,13 @@ public class VectorizePlugin extends AbstractPlugin {
         return "Elasticsearch Vectorize Plugin";
     }
 
-    @Override
-    public Collection<Module> modules(Settings settings) {
-        return Arrays.asList((Module) new VectorizeModule());
+    public void onModule(ActionModule actionModule) {
+        actionModule.registerAction(VectorizeAction.INSTANCE, TransportVectorizeAction.class);
+    }
+
+    public void onModule(RestModule restModule) {
+        restModule.addRestAction(RestVectorizeAction.class);
+        restModule.addRestAction(RestSearchVectorizeAction.class);
+        restModule.addRestAction(RestSearchVectorizeScrollAction.class);
     }
 }
