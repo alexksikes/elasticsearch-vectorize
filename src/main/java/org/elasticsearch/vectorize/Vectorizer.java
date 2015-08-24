@@ -54,7 +54,7 @@ public class Vectorizer {
     }
 
     public enum ValueOption {
-        BOOLEAN, TERM_FREQ, DOC_FREQ, TTF
+        BINARY, TERM_FREQ, DOC_FREQ, TTF
     }
 
     private List<Term> terms;
@@ -107,7 +107,7 @@ public class Vectorizer {
     private int getValue(String fieldName, @Nullable TermStatistics termStatistics, int freq) {
         ValueOption valueOption = valueOptions.get(fieldName);
         switch(valueOption) {
-            case BOOLEAN:
+            case BINARY:
                 return 1;
             case TERM_FREQ:
                 return freq;
@@ -169,7 +169,7 @@ public class Vectorizer {
 
     public boolean allValueOptionsBoolean() {
         for (ValueOption valueOption : valueOptions.values()) {
-            if (valueOption != ValueOption.BOOLEAN) {
+            if (valueOption != ValueOption.BINARY) {
                 return false;
             }
         }
@@ -236,17 +236,10 @@ public class Vectorizer {
     }
 
     private static ValueOption parseValueOption(String text) {
-        switch (text) {
-            case "term_freq":
-                return ValueOption.TERM_FREQ;
-            case "doc_freq":
-                return ValueOption.DOC_FREQ;
-            case "ttf":
-                return ValueOption.TTF;
-            case "boolean":
-                return ValueOption.BOOLEAN;
-            default:
-                throw new ElasticsearchParseException("The parameter value " + text + " is not valid!");
+        try {
+            return ValueOption.valueOf(text.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new ElasticsearchParseException("The parameter value " + text + " is not valid!");
         }
     }
 
