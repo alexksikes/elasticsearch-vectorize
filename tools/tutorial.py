@@ -14,7 +14,7 @@ client = elasticsearch.Elasticsearch(timeout=100)
 vectorizer_client = vectorize.VectorizeClient(client)
 
 
-def get_features(size=3000):
+def get_features(size):
     # use significant terms on the negative and positive class ...'
     features = []
     for i in (0, 1):
@@ -61,17 +61,16 @@ def get_vectorizer_body(features):
     }
 
 
-def generate_dataset(vectorizer, sparse_format='coo', batch_size=100000, cutoff=-1):
+def generate_dataset(vectorizer, batch_size=100000, cutoff=-1):
     # perform the request with scan and scroll
     vectorizer['size'] = batch_size
-    resp = vectorizer_client.scan(_index, _type, body=vectorizer, params={'scroll': '5m', 'sparse_format':
-        sparse_format})
+    resp = vectorizer_client.scan(_index, _type, body=vectorizer, params={'scroll': '5m', 'sparse_format': 'coo'})
 
     # process the data into a dataset
     row = np.array([], dtype=np.int8)
     col, data, shape = [], [], [0, 0]
     for i, r in enumerate(resp):
-        if i == cutoff or not r.has_key('matrix'):
+        if i == cutoff or 'matrix' not in r:
             break
         print 'processing set #%s' % i
 
