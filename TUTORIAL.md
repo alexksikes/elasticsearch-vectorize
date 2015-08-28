@@ -35,17 +35,17 @@ So to summarize first we get a good set of features. Second, we create a vectori
 
 First, make sure you have Python with [scipy](https://www.scipy.org/) and [scikit-learn](http://scikit-learn.org/) installed. I will pass on the setup instructions, but basically it boils down to installing Python if not already done so and `pip install scipy scikit-learn`.
 
-Second, you will also need to install the [Vectorize plugin](https://github.com/alexksikes/elasticsearch-vectorize). The Vectorize plugin is still very early on in its development. At the moment it is only supported by the latest Elasticsearch beta-1 release. You will need to build it source also. Please follow the Maven instructions which are included with the plugin.
+Second, you will also need to install the [Vectorize plugin](https://github.com/alexksikes/elasticsearch-vectorize). The Vectorize plugin is still very early on in its development. At the moment it is only supported by the latest Elasticsearch beta-1 release. You will need to build it from source also. Please follow the Maven instructions which are included with the plugin.
 
 ## Dataset Preparation
 
-Next we need to index the sentiment140 dataset. The datastet comes in a csv format. However, we have an already prepared json copy of this dataset.
+Next we need to index the sentiment140 dataset. The datastet comes in a csv format. Thankfully, we have an already prepared json copy of this dataset.
 
 Please feel free to download it:
 
 > wget http://data.elasticsearch.org/sentiment140/sentiment140.bulk.tar.gz
 
-Decompress it:
+De-compress it:
 
 > tar xvf sentiment140.bulk.tar.gz
 
@@ -183,11 +183,102 @@ And the response is full of happy keywords:
 }
 ```
 
-Unsurprisingly, all these keywords relate to positive feelings, and therefore should be good features in helping the classifier choose between positive or negative tweets. This is essentially what we do in the very first step of the tutorial.py file. We get 3000 of such keywords in each of the classes, and then take the union of these keywords as out feature set. Later on we will see that we could have selected fewer features with very minimal hit on the performance of the model. However, for the machine learning purists out there, reducing the number of features at this point would already be cheating.
+Unsurprisingly, all these keywords relate to positive feelings, and therefore should be good features in helping the classifier choose between positive or negative tweets. This is essentially what we do in the first step of the Python code, , only that we get 3000 features for each of the classes, and then take the union of these keywords as out feature set.
+
+```python
+features = get_features(3000)
+```
+
+Later on, we will see that we could have selected fewer features with very minimal hit on the accuracy of the model. However, for the machine learning purists out there, reducing the number of features at this point would already be cheating.
 
 Let's now move on to specifying how a document-term matrix should be generated from the index. As we have already mentioned, this matrix will then be used as the input of our classifier. This is when the Vectorize plugin joins the party.
 
 ## Creating a Vectorizer
+
+The next step consists of extracting a matrix from the indexed sentiment140 data. For that purpose we now have a good set of features which are to be found in the `text` field. We also know that the label of our data is to be found in the `polarity` field. As previously mentioned, a Vectorizer is simply a way of specifying a document-term matrix. As an illustrative example, let's see how such a vectorizer would look like for the top 10 positive keywords previously returned.
+
+```javascript
+{
+  "vectorizer": [
+    {
+      "field": "text",
+      "span": ["you", "thanks", "love", "good", "your", "great", "thank", "happy", "awesome", "haha"],
+      "value": "binary"
+    },
+    {
+      "field": "polarity",
+      "span": 1
+    }
+  ]
+}
+```
+
+What this means is that we reserve 10 columns for the features found in the `text` field. These features are specified in order by an array of keywords following the `span` parameter. The values which are extracted if the document has the given keywords is provided by the `value` parameter. There are a couple of possible options here such as extracting the term frequency or the document frequency of the term. However, since the tweets are rather short sized, we could more simply ask for `binary` features. This means that a 1 is returned at this column if the document has the given feature, or 0 otherwise. Finally, the last column is occupied by the polarity of the tweet. Here the `span` parameter takes an integer, say n, which indicates to use the first n values found in the given field as is. Here we specify to use the first (and only) value found in the `polarity` field. This will serve as the label for our supervised machine learning method.
+
+Let's take a look as to how such a vector would look like on a tweet we know contains many of such terms. For that purpose we will make use of the `_vectorize` endpoint of the Vectorize plugin.
+
+So for example on this tweet:
+
+```javascript
+{
+  "_index": "sentiment140",
+  "_type": "tweets",
+  "_id": "2012313853",
+  "_score": 1.0522405,
+  "_source": {
+    "date": "Tue Jun 02 20:26:01 PDT 2009",
+    "polarity": 1,
+    "query": "NO_QUERY",
+    "text": "i love a great conversation...thank you. your a babe. ",
+    "tweet_id": "2012313853",
+    "user": "tylerceerius"
+  }
+}
+```
+
+Using the `_vectorize` endpoint with the vectorizer previously created:
+
+```javascript
+GET sentiment140/tweets/2012313853/_vectorize
+{
+  "vectorizer": [
+    {
+      "field": "text",
+      "span": ["you", "thanks", "love", "good", "your", "great", "thank", "happy", "awesome", "haha"],
+      "value": "binary"
+    },
+    {
+      "field": "polarity",
+      "span": 1
+    }
+  ]
+}
+```
+
+Gives the following response:
+
+```javascript
+{
+  "_index": "sentiment140",
+  "_type": "tweets",
+  "_id": "2012313853",
+  "_version": 0,
+  "found": true,
+  "took": 45,
+  "shape": [1, 11],
+  "matrix": [{"0": 1, "2": 1, "4": 1, "5": 1, "6": 1, "10": 1}]
+}
+```
+
+The response is composed of a `shape` field together with a `matrix` field. The shape describes the size of the matrix obtained. Here, we have a vector of size `11`, because the vectorizer has implicitly specified 11 columns. The `matrix` field is the actual returned vector in a sparse format, meaning that zeros are omitted from the response. While working with text features, the vectors are usually very sparse, and therefore returning such a sparse response is quite desirable. Now looking at the vector returned, we see that this tweet has the keywords "you" (column 0), "love" (column 2), "good" (column 4), "your" (column 5), "great" (column 6) and a polarity of "1" (column 10).
+
+Now we can come back to the second step of the Python tutorial file. What we do is essentially creating a vectorizer but not on the top 10 positive keywords, but on all the features previously returned, that is on the ~6000 negative and positive keywords.
+
+```python
+vectorizer = get_vectorizer_body(features)
+```
+
+As we will see next, we can apply the vectorizer not just on a single document but rather on to a set of document in order to generate a dataset. At this point, we will be in position to train a model and evaluate its accuracy.
 
 ## Generating a Dataset
 
