@@ -31,6 +31,7 @@ public class VectorizeRunner {
     public static void main(String[] args) throws Throwable {
         System.setProperty("es.foreground", "yes");
         System.setProperty("es.http.cors.enabled", "true");
+        System.setProperty("es.http.cors.allow-origin", "*");
         System.setProperty("es.script.inline", "on");
         System.setProperty("es.shield.enabled", "false");
         System.setProperty("es.security.manager.enabled", "false");
