@@ -186,6 +186,35 @@ And the response is full of happy keywords:
 Unsurprisingly, all these keywords relate to positive feelings, and therefore should be good features in helping the classifier choose between positive or negative tweets. This is essentially what we do in the first step of the Python code, , only that we get 3000 features for each of the classes, and then take the union of these keywords as out feature set.
 
 ```python
+# 1) let's get a good set of features using significant terms
+def get_features(size):
+    # use significant terms on the negative and positive class ...'
+    features = []
+    for i in (0, 1):
+        resp = client.search(_index, _type, body=get_features_body(i, size), params={'search_type': 'count'})
+        features.extend(r['key'] for r in resp['aggregations']['top_keywords']['buckets'])
+
+    # return the union of both sets as features
+    return features
+
+def get_features_body(_class, size):
+    return {
+        "query": {
+            "term": {
+                "polarity": {
+                    "value": _class
+                }
+            }
+        },
+        "aggs": {
+            "top_keywords": {
+                "significant_terms": {
+                    "field": "text",
+                    "size": size
+                }
+            }
+        }
+    }
 features = get_features(3000)
 ```
 
@@ -275,6 +304,21 @@ The response is composed of a `shape` field together with a `matrix` field. The 
 Now we can come back to the second step of the Python tutorial file. What we do is essentially creating a vectorizer but not on the top 10 positive keywords, but on all the features previously returned, that is on the ~6000 negative and positive keywords.
 
 ```python
+# 2) now let's create a vectorizer with these features
+def get_vectorizer_body(features):
+    return {
+        "vectorizer": [
+            {
+                "field": "text",
+                "span": features,
+                "value": "binary"
+            },
+            {
+                "field": "polarity",
+                "span": 1
+            }
+        ]
+    }
 vectorizer = get_vectorizer_body(features)
 ```
 
