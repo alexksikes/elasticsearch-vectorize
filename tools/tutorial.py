@@ -116,23 +116,23 @@ def evaluate(model, test_data):
 
 
 if __name__ == '__main__':
-    # first let's get a good set of features using significant terms
+    # 1) let's get a good set of features using significant terms
     features = get_features(3000)
 
-    # now let's create a vectorizer with these features
+    # 2) now let's create a vectorizer with these features
     vectorizer = get_vectorizer_body(features)
 
-    # generate a dataset with this vectorizer
+    # 3) generate a dataset with this vectorizer
     dataset = generate_dataset(vectorizer, batch_size=100000, cutoff=-1)
 
-    # generate a training and a test set
+    # 4) split as training and a test set
     train_data, test_data, train_target, test_target = get_train_test_split(dataset, test_size=0.33)
 
-    # use scikit-learn to train a model on the train set
+    # 4.b) use scikit-learn to train a model on the train set
     model = train_model(train_data, train_target)
 
-    # evaluate the model on the test set
+    # 5.a) evaluate the model on the test set
     y_pred = evaluate(model, test_data)
 
-    # and finally report the accuracy
+    # 5.b) finally report the accuracy
     print 'accuracy: %s' % metrics.accuracy_score(test_target, y_pred)

@@ -1,35 +1,35 @@
 # Machine Learning Fun with Elasticsearch - Part 1
 
-The first part of this tutorial covers how to use the [Vectorize plugin](https://github.com/alexksikes/elasticsearch-vectorize/) in order to obtain a dataset from data stored in Elasticsearch. That dataset can then be used by external data analytics tools such as Panda or R or by machine learning packages such as scikit-learn or MLlib. The second part of this tutorial is focused on storing a trained model back in Elasticsearch, and then on using the Vectorize plugin again to evaluate the model in scripts or in aggregations.
+The first part of this tutorial covers how to use the [Vectorize plugin](https://github.com/alexksikes/elasticsearch-vectorize/) in order to obtain a dataset from data stored in Elasticsearch. That dataset can then be used by external data analytics tools such as Panda or R or by machine learning packages such as scikit-learn or MLlib. The second part of this tutorial is focused on storing the trained model back in Elasticsearch, and then on using the Vectorize plugin again to evaluate the model in scripts or in aggregations.
 
-The Vectorize plugin is simply a mechanism to extract data as a [document-term matrix](https://en.wikipedia.org/wiki/Document-term_matrix) in a consistent manner. What we mean by consistent is that if new features are added later on, then our specification will ensure that the same features will occupy the same column in the matrix. In order to show how the plugin works and why it is useful, we will build a classifier to distinguish between negative and positive sentiments. To this effect we will be using the [sentiment140](http://help.sentiment140.com/for-students) dataset.
+The Vectorize plugin is simply a mechanism to extract data as a [document-term matrix](https://en.wikipedia.org/wiki/Document-term_matrix) in a consistent manner. What we mean by consistent is that if new features are added later on, then our specification will ensure that the same features will occupy the same column in the matrix. In order to show how the plugin works and why it is useful, we will train a classifier to distinguish between negative and positive sentiments. To this effect we will be using the [sentiment140](http://help.sentiment140.com/for-students) dataset.
 
 This tutorial is mainly a more detailed explanation of the heavily commented Python [example](https://github.com/alexksikes/elasticsearch-vectorize/blob/master/tools/tutorial.py) that ships with the plugin. We can already take a quick look at the main steps involved:
 
 ```python
-# first let's get a good set of features using significant terms
+# 1) let's get a good set of features using significant terms
 features = get_features(3000)
 
-# now let's create a vectorizer with these features
+# 2) now let's create a vectorizer with these features
 vectorizer = get_vectorizer_body(features)
 
-# generate a dataset with this vectorizer
+# 3) generate a dataset with this vectorizer
 dataset = generate_dataset(vectorizer, batch_size=100000, cutoff=-1)
 
-# generate a training and a test set
+# 4.a) generate a training and a test set
 train_data, test_data, train_target, test_target = get_train_test_split(dataset, test_size=0.33)
 
-# use scikit-learn to train a model on the train set
+# 4.b) use scikit-learn to train a model on the train set
 model = train_model(train_data, train_target)
 
-# evaluate the model on the test set
+# 5.a) evaluate the model on the test set
 y_pred = evaluate(model, test_data)
 
-# and finally report the accuracy
+# 5.b) finally report the accuracy
 print 'accuracy: %s' % metrics.accuracy_score(test_target, y_pred)
 ```
 
-So to summarize first we get a good set of features, then create a vectorizer to obtain a document-term matrix. Then a model is trained on this matrix. Finally we evaluate the model and report on its accuracy. Each of these steps will be explained in greater details, but first let's get some necessary prerequisites. So let's get started!
+So to summarize first we get a good set of features. Second, we create a vectorizer to obtain a document-term matrix from the indexed data. Third, using the vectorizer a dataset is generated. Fourth, a model is trained on this dataset. And fifth, the model is evaluated and we report on its accuracy. Each of these steps will be explained in greater details, but first let's get some necessary prerequisites. So let's get started!
 
 ## Prerequisites
 
@@ -94,7 +94,7 @@ Now we should be all set!
 
 ## Getting a Good Set of Features
 
-Before training our model it is crucial to come up with a good set of features. We could be using all the tokenized keywords in the `text` field. However, it would more desirable to select a smaller but more interesting set of features out of the gate. This would help reduce computation time but also probably improve on the performance of our model. Since we want to discriminate between negative and positive tweets, we could use a significant terms aggregation against each of the classes, and be the features the union of that set.
+Before training our model it is crucial to come up with a good set of features. We could be using all the tokenized keywords in the `text` field. However, it would more desirable to select a smaller but more interesting set of features out of the gate. This would help reduce computation time but also probably improve on the performance of our model. Since we want to discriminate between negative and positive tweets, we could use a significant terms aggregation against each of the classes.
 
 Such an aggregation on the `1` class (positive tweets) would look like this:
 
@@ -183,13 +183,11 @@ And the response is full of happy keywords:
 }
 ```
 
-This is what we do in the first step of the tutorial.py file, only that we get 3000 features for each class. We will see later that we could have selected fewer features and still get a pretty good accuracy. However, for the machine learning purist out there, this would already be cheating.
+Unsurprisingly, all these keywords relate to positive feelings, and therefore should be good features in helping the classifier choose between positive or negative tweets. This is essentially what we do in the very first step of the tutorial.py file. We get 3000 of such keywords in each of the classes, and then take the union of these keywords as out feature set. Later on we will see that we could have selected fewer features with very minimal hit on the performance of the model. However, for the machine learning purists out there, reducing the number of features at this point would already be cheating.
 
-OK let's move on to specifying how a document-term matrix should be generated from the index. That matrix will then be used as input to our machine learning model. This is when the Vectorize plugin joins the party.
+Let's now move on to specifying how a document-term matrix should be generated from the index. As we have already mentioned, this matrix will then be used as the input of our classifier. This is when the Vectorize plugin joins the party.
 
 ## Creating a Vectorizer
-
-Now that we have a good set of features
 
 ## Generating a Dataset
 
