@@ -242,11 +242,11 @@ The next step consists of extracting a matrix from the indexed sentiment140 data
 }
 ```
 
-What this means is that we reserve 10 columns for the features found in the `text` field. These features are specified in order by an array of keywords following the `span` parameter. The values which are extracted if the document has the given keywords is provided by the `value` parameter. There are a couple of possible options here such as extracting the term frequency or the document frequency of the term. However, since the tweets are rather short sized, we could more simply ask for `binary` features. This means that a 1 is returned at this column if the document has the given feature, or 0 otherwise. Finally, the last column is occupied by the polarity of the tweet. Here the `span` parameter takes an integer, say n, which indicates to use the first n values found in the given field as is. Here we specify to use the first (and only) value found in the `polarity` field. This will serve as the label for our supervised machine learning method.
+What this means is that we reserve 10 columns for the features found in the `text` field. These features are specified in order by an array of keywords following the `span` parameter. The values which are extracted if the document has the given keywords is provided by the `value` parameter. There are a couple of possible options here such as extracting the term frequency or the document frequency. However, since the tweets are rather short sized, we could more simply ask for `binary` features. This means that a 1 is returned at this column if the document has the given feature, or 0 otherwise. Finally, the last column is occupied by the polarity of the tweet. Here the `span` parameter takes an integer, say n, which indicates to use the first n values found in the given field as is. Here, we specify to use the first (and only) value found in the `polarity` field. This will serve as the label for supervised machine learning.
 
-Let's take a look as to how such a vector would look like on a tweet we know contains many of such terms. For that purpose we will make use of the `_vectorize` endpoint of the Vectorize plugin.
+Let's take a look as to how such a vector would look like on a given tweet. The Vectorize plugin registers two endpoints. The first one, `_vectorize`, is used to generated the vector of a single document. While the second one, `_search_vectorize`, as we will see later, is used on a set of documents described by a query.
 
-So for example on this tweet:
+Let's have a look at the given tweet:
 
 ```javascript
 {
@@ -265,7 +265,7 @@ So for example on this tweet:
 }
 ```
 
-Using the `_vectorize` endpoint with the vectorizer previously created:
+Using the `_vectorize` with the vectorizer previously created:
 
 ```javascript
 GET sentiment140/tweets/2012313853/_vectorize
@@ -299,9 +299,9 @@ Gives the following response:
 }
 ```
 
-The response is composed of a `shape` field together with a `matrix` field. The shape describes the size of the matrix obtained. Here, we have a vector of size `11`, because the vectorizer has implicitly specified 11 columns. The `matrix` field is the actual returned vector in a sparse format, meaning that zeros are omitted from the response. While working with text features, the vectors are usually very sparse, and therefore returning such a sparse response is quite desirable. Now looking at the vector returned, we see that this tweet has the keywords "you" (column 0), "love" (column 2), "good" (column 4), "your" (column 5), "great" (column 6) and a polarity of "1" (column 10).
+The response is composed of a `shape` field together with a `matrix` field. The shape describes the size of the matrix obtained. Here, we have a vector of size `11`. The `matrix` field is the actual returned vector in a sparse format, meaning that zeros are omitted from the response. While working with text features, the vectors are usually very sparse, and therefore returning such a sparse response is quite desirable. Looking at the vector returned, we see that this tweet has the keywords "you" (column 0), "love" (column 2), "good" (column 4), "your" (column 5), "great" (column 6) and a polarity of "1" (column 10).
 
-Now we can come back to the second step of the Python tutorial file. What we do is essentially creating a vectorizer but not on the top 10 positive keywords, but on all the features previously returned, that is on the ~6000 negative and positive keywords.
+Now we can come back to the second step of the Python tutorial file. What we do is essentially creating a vectorizer on all the features previously returned.
 
 ```python
 # 2) now let's create a vectorizer with these features
@@ -322,12 +322,154 @@ def get_vectorizer_body(features):
 vectorizer = get_vectorizer_body(features)
 ```
 
-As we will see next, we can apply the vectorizer not just on a single document but rather on to a set of document in order to generate a dataset. At this point, we will be in position to train a model and evaluate its accuracy.
+Next we will use `_search_vectorize` to generate the actual dataset. At that point, we will be in position to train a model and evaluate on its accuracy.
 
 ## Generating a Dataset
 
+Let's have a look at the `_search_vectorize` in action with the small vectorizer made of the top 10 positive keywords.
+
+```javascript
+GET sentiment140/tweets/_search_vectorize?sparse_format=coo
+{
+  "query": {
+    "terms": {
+      "text": [
+        "you", "thanks", "love", "good", "your", "great", "thank", "happy", "awesome", "haha"
+      ]
+    }
+  },
+  "vectorizer": [
+    {
+      "field": "text",
+      "span": [
+        "you", "thanks", "love", "good", "your", "great", "thank", "happy", "awesome", "haha"
+      ],
+      "value": "binary"
+    },
+    {
+      "field": "polarity",
+      "span": 1
+    }
+  ],
+  "size": 3
+}
+```
+
+And the response:
+
+```javascript
+{
+  "took": 25,
+  "timed_out": false,
+  "shape": [
+    3,
+    11
+  ],
+  "matrix": {
+    "row": [
+      0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2
+    ],
+    "col": [
+      0, 2, 3, 4, 5, 7, 9, 10, 0, 2, 4, 6, 8, 9, 10, 0, 2, 4, 5, 7, 8, 10
+    ],
+    "data": [
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+    ]
+  }
+}
+```
+
+Here we asked to return the matrix in COO format, instead of an array DICT format. The COO sparse matrix format is better suited for the SciPy sparse package. In fact, we can directly use these values in order to create the sparse matrix object, which will serve as input to the machine learning model. A COO matrix has a `row`, `col` and `data` so that each non zero entry in the matrix corresponds to coordinate of the form (row_i, col_i, data_i). For example, at the entry at (2, 0) is non-zero and of value 1.
+
+The `_search_vectorize` endpoint supports every option that the traditional `_search` endpoint supports, including scan and scroll. The third step of Python tutorial file makes a scan request, and then concatenate each matrix from the batch.
+
+```python
+# 3) generate a dataset with this vectorizer
+def generate_dataset(vectorizer, batch_size=100000, cutoff=-1):
+    # perform the request with scan and scroll
+    vectorizer['size'] = batch_size
+    resp = vectorizer_client.scan(_index, _type, body=vectorizer, params={'scroll': '5m', 'sparse_format': 'coo'})
+
+    # process the data into a dataset
+    row = np.array([], dtype=np.int8)
+    col, data, shape = [], [], [0, 0]
+    for i, r in enumerate(resp):
+        if i == cutoff or 'matrix' not in r:
+            break
+        print 'processing set #%s' % i
+
+        # we simply append to the existing data and columns
+        data.extend(r['matrix']['data'])
+        col.extend(r['matrix']['col'])
+
+        # we need to add the last coord to the current row
+        current_row = np.array(r['matrix']['row'], dtype=np.long)
+        if i == 0:
+            row = current_row
+        else:
+            row = np.concatenate([row, row[-1] + current_row])
+
+        # and increase the number of lines
+        current_shape = r['shape']
+        if i == 0:
+            shape = current_shape
+        else:
+            shape[0] += current_shape[0]
+
+    return csc_matrix((data, (row, col)), shape=shape, dtype=np.long)
+dataset = generate_dataset(vectorizer, batch_size=100000, cutoff=-1)
+```
+
+Each of the returned matrices are concatenated. For COO matrices, this boils down to appending the columns and data values with their previous values. The rows must be incremented by the previous row value returned, as well as the shape values. Finally, we can directly make the sparse matrix object with the data, row, col and shape values obtained.
+
 ## Training the Model
+
+At this point, we now have the dataset in memory. We could perform some analytics on this dataset, but we will keep focused to using scikit-learn to train the model. First, we need to slice the matrix column wise to obtain the examples data and the target labels. Second, we make use of scikit-learn's utility function to split the dataset into a training set and a test set. The training set uses 77% of the example data, while the test uses the rest.
+
+```python
+# 4.a) split as training and a test set
+def get_train_test_split(dataset, test_size=0.33):
+    # convert data to csr for faster row slicing
+    data = dataset[:, :-1].tocsr()
+    target = dataset[:, -1].toarray().ravel()
+    return cross_validation.train_test_split(data, target, test_size=test_size)
+train_data, test_data, train_target, test_target = get_train_test_split(dataset, test_size=0.33)
+```
+
+Our machine learning algorithm is a Linear SVC because SVMs are known to perform well in high dimensional sparse feature spaces. Also we don't bother performing any parameter tuning whatsoever which would require another validation set.
+
+```python
+# 4.b) use scikit-learn to train a model on the train set
+def train_model(train_data, train_target):
+    # we use a linear SVC for the sake of this example
+    model = svm.LinearSVC()
+    print 'training the model ...'
+    model.fit(train_data, train_target)
+    return model
+model = train_model(train_data, train_target)
+```
+
+We are now ready to evaluate the model on the test set and compare our results with the ones given in the [sentiment140 paper](http://cs.stanford.edu/people/alecmgo/papers/TwitterDistantSupervision09.pdf).
 
 ## Evaluating the Model
 
+The last steps of the Python tutorial consists of evaluating the model and report on its accuracy.
+
+```python
+# 5.a) evaluate the model on the test set
+def evaluate(model, test_data):
+    print 'evaluating the model ...'
+    return model.predict(test_data)
+y_pred = evaluate(model, test_data)
+
+# 5.b) finally report the accuracy
+print 'accuracy: %s' % metrics.accuracy_score(test_target, y_pred)
+```
+
+With roughly 6000 features obtained with a significant terms aggregation, our model performs an accuracy of 79.1% which isn't far from the 82.9% accuracy reported by the paper. If we had selected only the top 600 features, the accuracy of the model drops to only 76% accuracy. This indicates that significant terms are pretty good at generating good set of features.
+
 ## Final Thoughts
+
+We could imagine having a server which would hold the models in memory. Then the client could request either to retrain a given model or to evaluate a given one. Under the hood the server would be pulling data from Elasticsearch using the Vectorize plugin.
+
+However, it would be nice if the model could be directly stored in Elasticsearch, so that it can be called, for example, in a script or in a aggregation. The second part of this tutorial covers this use case. Again, we will be using the Vectorize plugin to ensure that the features used for training are the same as the ones used for evaluation.

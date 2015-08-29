@@ -117,7 +117,7 @@ def evaluate(model, test_data):
 
 if __name__ == '__main__':
     # 1) let's get a good set of features using significant terms
-    features = get_features(3000)
+    features = get_features(300)
 
     # 2) now let's create a vectorizer with these features
     vectorizer = get_vectorizer_body(features)
@@ -125,7 +125,7 @@ if __name__ == '__main__':
     # 3) generate a dataset with this vectorizer
     dataset = generate_dataset(vectorizer, batch_size=100000, cutoff=-1)
 
-    # 4) split as training and a test set
+    # 4.a) split as training and a test set
     train_data, test_data, train_target, test_target = get_train_test_split(dataset, test_size=0.33)
 
     # 4.b) use scikit-learn to train a model on the train set
