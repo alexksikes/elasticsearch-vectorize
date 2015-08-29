@@ -1,10 +1,10 @@
 # Machine Learning Fun with Elasticsearch - Part 1
 
-The first part of this tutorial covers how to use the [Vectorize plugin](https://github.com/alexksikes/elasticsearch-vectorize/) in order to obtain a dataset from data stored in Elasticsearch. That dataset can then be used by external data analytics tools such as Panda or R or by machine learning packages such as scikit-learn or MLlib. The second part of this tutorial is focused on storing the trained model back in Elasticsearch, and then on using the Vectorize plugin again to evaluate the model in scripts or in aggregations.
+The first part of this tutorial covers how to use the [Vectorize plugin][vectorize] in order to obtain a dataset from data stored in Elasticsearch. That dataset can then be used by external data analytics tools such as [Panda][panda] or [R][r] or by machine learning packages such as [scikit-learn][scikit] or [MLlib][mllib]. The second part of this tutorial is focused on storing the trained model back in Elasticsearch, and then on using the Vectorize plugin again to evaluate the model in scripts or in aggregations.
 
-The Vectorize plugin is simply a mechanism to extract data as a [document-term matrix](https://en.wikipedia.org/wiki/Document-term_matrix) in a consistent manner. What we mean by consistent is that if new features are added later on, then our specification will ensure that the same features will occupy the same column in the matrix. In order to show how the plugin works and why it is useful, we will train a classifier to distinguish between negative and positive sentiments. To this effect we will be using the [sentiment140](http://help.sentiment140.com/for-students) dataset.
+The Vectorize plugin is simply a mechanism to extract data as a [document-term matrix][docterm] in a consistent manner. What we mean by consistent is that if new features are added later on, then our specification will ensure that the same features will occupy the same column in the matrix. In order to show how the plugin works and why it is useful, we will train a classifier to distinguish between negative and positive sentiments. To this effect we will be using the [sentiment140][sentiment140] dataset.
 
-This tutorial is mainly a more detailed explanation of the heavily commented Python [example](https://github.com/alexksikes/elasticsearch-vectorize/blob/master/tools/tutorial.py) that ships with the plugin. We can already take a quick look at the main steps involved:
+This tutorial is merely a more detailed explanation of the heavily commented Python [example][tutorial] that ships with the plugin. We can already take a quick look at the main steps involved:
 
 ```python
 # 1) let's get a good set of features using significant terms
@@ -33,13 +33,13 @@ So to summarize first we get a good set of features. Second, we create a vectori
 
 ## Prerequisites
 
-First, make sure you have Python with [scipy](https://www.scipy.org/) and [scikit-learn](http://scikit-learn.org/) installed. I will pass on the setup instructions, but basically it boils down to installing Python if not already done so and `pip install scipy scikit-learn`.
+First, make sure you have Python with [SciPy][scipy] and [scikit-learn][scikit] installed. I will pass on the setup instructions, but basically it boils down to installing [Python][python] if not already done so and `pip install scipy scikit-learn`.
 
-Second, you will also need to install the [Vectorize plugin](https://github.com/alexksikes/elasticsearch-vectorize). The Vectorize plugin is still very early on in its development. At the moment it is only supported by the latest Elasticsearch beta-1 release. You will need to build it from source also. Please follow the Maven instructions which are included with the plugin.
+Second, you will also need to install the [Vectorize plugin][vectorize]. The Vectorize plugin is still very early on in its development. At the moment it is only supported by the latest [Elasticsearch 2.0.0-beta1][elasticsearch]. Also you will need to build it from source. Please follow the Maven instructions which are included with the plugin.
 
 ## Dataset Preparation
 
-Next we need to index the sentiment140 dataset. The datastet comes in a csv format. Thankfully, we have an already prepared json copy of this dataset.
+Next we need to index the [sentiment140][sentiment140] dataset. The dataset comes in a CSV format, but thankfully we have an already prepared JSON copy of this dataset.
 
 Please feel free to download it:
 
@@ -90,11 +90,11 @@ And finally index each bulk:
 
 > curl -s -XPOST http://localhost:9200/sentiment140/_bulk\?pretty=true --data-binary @sentiment140.bulk.{bulk_number} >> sentiment140.indexed.log
 
-Now we should be all set!
+Now you should be all set!
 
 ## Getting a Good Set of Features
 
-Before training our model it is crucial to come up with a good set of features. We could be using all the tokenized keywords in the `text` field. However, it would more desirable to select a smaller but more interesting set of features out of the gate. This would help reduce computation time but also probably improve on the performance of our model. Since we want to discriminate between negative and positive tweets, we could use a significant terms aggregation against each of the classes.
+Before training our model it is crucial to come up with a good set of features. We could be using all the tokenized keywords in the `text` field. However, it would more desirable to select a smaller but more interesting set of features out of the gate. This would help reduce computation time but also improve on the performance of the model. Since we want to discriminate between negative and positive tweets, we could use a significant terms aggregation against each of the classes.
 
 Such an aggregation on the `1` class (positive tweets) would look like this:
 
@@ -183,7 +183,7 @@ And the response is full of happy keywords:
 }
 ```
 
-Unsurprisingly, all these keywords relate to positive feelings, and therefore should be good features in helping the classifier choose between positive or negative tweets. This is essentially what we do in the first step of the Python code, , only that we get 3000 features for each of the classes, and then take the union of these keywords as out feature set.
+Unsurprisingly, all these keywords relate to positive feelings, and therefore should be good features in helping the classifier choose between positive or negative tweets. This is essentially what is done in the first step of the Python code, only that 3000 features of each class are requested, and then the union of these keywords is the resulting feature set.
 
 ```python
 # 1) let's get a good set of features using significant terms
@@ -218,13 +218,13 @@ def get_features_body(_class, size):
 features = get_features(3000)
 ```
 
-Later on, we will see that we could have selected fewer features with very minimal hit on the accuracy of the model. However, for the machine learning purists out there, reducing the number of features at this point would already be cheating.
+Later on, we will see that we could have selected fewer features with minimal hit on the accuracy of the model. However, for the machine learning purists out there, reducing the number of features at this point would already be cheating.
 
-Let's now move on to specifying how a document-term matrix should be generated from the index. As we have already mentioned, this matrix will then be used as the input of our classifier. This is when the Vectorize plugin joins the party.
+Let's now move on to specifying how a [document-term matrix][docterm] should be generated from the index. As we have already mentioned, this matrix will then be used as the input of our classifier. This is when the [Vectorize plugin][vectorize] joins the party.
 
 ## Creating a Vectorizer
 
-The next step consists of extracting a matrix from the indexed sentiment140 data. For that purpose we now have a good set of features which are to be found in the `text` field. We also know that the label of our data is to be found in the `polarity` field. As previously mentioned, a Vectorizer is simply a way of specifying a document-term matrix. As an illustrative example, let's see how such a vectorizer would look like for the top 10 positive keywords previously returned.
+The next step consists of extracting a matrix from the sentiment140 index. We have already extracted a good set of features from the `text` field. The label on which to train is to be found in the `polarity` field. Let's see how such a vectorizer would look like for the top 10 positive keywords previously returned.
 
 ```javascript
 {
@@ -242,11 +242,11 @@ The next step consists of extracting a matrix from the indexed sentiment140 data
 }
 ```
 
-What this means is that we reserve 10 columns for the features found in the `text` field. These features are specified in order by an array of keywords following the `span` parameter. The values which are extracted if the document has the given keywords is provided by the `value` parameter. There are a couple of possible options here such as extracting the term frequency or the document frequency. However, since the tweets are rather short sized, we could more simply ask for `binary` features. This means that a 1 is returned at this column if the document has the given feature, or 0 otherwise. Finally, the last column is occupied by the polarity of the tweet. Here the `span` parameter takes an integer, say n, which indicates to use the first n values found in the given field as is. Here, we specify to use the first (and only) value found in the `polarity` field. This will serve as the label for supervised machine learning.
+With this vectorizer 10 columns are reserved for the features found in the `text` field. These features are listed in order by an array of keywords following the `span` parameter. The extracted values if the document has the given keywords is provided by the `value` parameter. There are a couple of possible options here such as extracting the term frequencies or the document frequencies. However, since the tweets are rather short sized pieces of text, we ask for `binary` features. This means that a `1` is returned at this column if the document has the given feature, or `0` otherwise. Finally, the last column is occupied by the polarity of the tweet. Here the `span` parameter takes an integer, say n, which indicates to use the first n values found in the given field as is. Here, we specify to use the first (and only) value found in the `polarity` field. These values will serve as labels for supervised machine learning.
 
-Let's take a look as to how such a vector would look like on a given tweet. The Vectorize plugin registers two endpoints. The first one, `_vectorize`, is used to generated the vector of a single document. While the second one, `_search_vectorize`, as we will see later, is used on a set of documents described by a query.
+We can now try this vectorizer on a given tweet. The Vectorize plugin registers two endpoints. The first one, `_vectorize`, is used to generated the vector of a single document. While the second one, `_search_vectorize`, as we will see later, is used on a set of documents prescribed by a query.
 
-Let's have a look at the given tweet:
+On this given tweet:
 
 ```javascript
 {
@@ -265,7 +265,7 @@ Let's have a look at the given tweet:
 }
 ```
 
-Using the `_vectorize` with the vectorizer previously created:
+Using `_vectorize` with the vectorizer previously created:
 
 ```javascript
 GET sentiment140/tweets/2012313853/_vectorize
@@ -299,9 +299,9 @@ Gives the following response:
 }
 ```
 
-The response is composed of a `shape` field together with a `matrix` field. The shape describes the size of the matrix obtained. Here, we have a vector of size `11`. The `matrix` field is the actual returned vector in a sparse format, meaning that zeros are omitted from the response. While working with text features, the vectors are usually very sparse, and therefore returning such a sparse response is quite desirable. Looking at the vector returned, we see that this tweet has the keywords "you" (column 0), "love" (column 2), "good" (column 4), "your" (column 5), "great" (column 6) and a polarity of "1" (column 10).
+The response is composed of a `shape` together with `matrix`. The shape describes the size of the matrix obtained. Here, we have a vector of size `11`. The `matrix` is the actual vector returned in sparse format, meaning that zeros are omitted from the matrix. When working with text features, the vectors are usually very sparse, and therefore returning such a sparse response is quite desirable. Looking at the vector returned, we see that this tweet has the keywords "you" (column 0), "love" (column 2), "good" (column 4), "your" (column 5), "great" (column 6) and a polarity of "1" (column 10).
 
-Now we can come back to the second step of the Python tutorial file. What we do is essentially creating a vectorizer on all the features previously returned.
+Now we can come back to the second step of the Python tutorial file. What we do is essentially to create a vectorizer on all the features previously returned. That is on the roughly 6000 thousands negative and positive keywords.
 
 ```python
 # 2) now let's create a vectorizer with these features
@@ -322,11 +322,11 @@ def get_vectorizer_body(features):
 vectorizer = get_vectorizer_body(features)
 ```
 
-Next we will use `_search_vectorize` to generate the actual dataset. At that point, we will be in position to train a model and evaluate on its accuracy.
+Next let's see how to use `_search_vectorize` to generate the actual dataset. At that point, we will be in position to train a model and evaluate on its accuracy.
 
 ## Generating a Dataset
 
-Let's have a look at the `_search_vectorize` in action with the small vectorizer made of the top 10 positive keywords.
+Let's start by taking at the response look returned by using `_search_vectorize` on the small vectorizer made of the top 10 positive keywords.
 
 ```javascript
 GET sentiment140/tweets/_search_vectorize?sparse_format=coo
@@ -379,7 +379,7 @@ And the response:
 }
 ```
 
-Here we asked to return the matrix in COO format, instead of an array DICT format. The COO sparse matrix format is better suited for the SciPy sparse package. In fact, we can directly use these values in order to create the sparse matrix object, which will serve as input to the machine learning model. A COO matrix has a `row`, `col` and `data` so that each non zero entry in the matrix corresponds to coordinate of the form (row_i, col_i, data_i). For example, at the entry at (2, 0) is non-zero and of value 1.
+Something to note here is that we asked to return the matrix in `COO` format, instead of an array `DICT` format. The COO sparse matrix format is better suited for the SciPy sparse package, as we can directly use its output to form a sparse matrix object. A COO matrix has a `row`, `col` and `data` so that each non zero entry in the matrix corresponds to a coordinate of the form (row_*i*, col_*i*, data_*i*). For example, the entry at (2, 0) is non-zero and of value 1.
 
 The `_search_vectorize` endpoint supports every option that the traditional `_search` endpoint supports, including scan and scroll. The third step of Python tutorial file makes a scan request, and then concatenate each matrix from the batch.
 
@@ -424,7 +424,7 @@ Each of the returned matrices are concatenated. For COO matrices, this boils dow
 
 ## Training the Model
 
-At this point, we now have the dataset in memory. We could perform some analytics on this dataset, but we will keep focused to using scikit-learn to train the model. First, we need to slice the matrix column wise to obtain the examples data and the target labels. Second, we make use of scikit-learn's utility function to split the dataset into a training set and a test set. The training set uses 77% of the example data, while the test uses the rest.
+At this point, we now have the dataset in memory. We could perform some analytics on this dataset, but let's keep it focused to using scikit-learn to train the model. First, we need to slice the matrix column wise to obtain the examples data on one side and the target labels on the other side. Second, we make use of scikit-learn's utility function to split the dataset into a training set and a test set. The training set uses 77% of the example data, while the test uses the rest.
 
 ```python
 # 4.a) split as training and a test set
@@ -436,7 +436,7 @@ def get_train_test_split(dataset, test_size=0.33):
 train_data, test_data, train_target, test_target = get_train_test_split(dataset, test_size=0.33)
 ```
 
-Our machine learning algorithm is a Linear SVC because SVMs are known to perform well in high dimensional sparse feature spaces. Also we don't bother performing any parameter tuning whatsoever which would require another validation set.
+Our machine learning algorithm is a Linear SVC because SVMs. We choose this method because SVMs are known to perform well in a high dimensional sparse feature space. Also we don't bother performing any parameter tuning whatsoever which would require using another validation set.
 
 ```python
 # 4.b) use scikit-learn to train a model on the train set
@@ -449,11 +449,11 @@ def train_model(train_data, train_target):
 model = train_model(train_data, train_target)
 ```
 
-We are now ready to evaluate the model on the test set and compare our results with the ones given in the [sentiment140 paper](http://cs.stanford.edu/people/alecmgo/papers/TwitterDistantSupervision09.pdf).
+We are now ready to evaluate the model on the test set and compare our results with the ones given in the [sentiment140 paper][paper].
 
 ## Evaluating the Model
 
-The last steps of the Python tutorial consists of evaluating the model and report on its accuracy.
+The last steps of the Python tutorial consists of evaluating the model and to report on its accuracy.
 
 ```python
 # 5.a) evaluate the model on the test set
@@ -466,10 +466,23 @@ y_pred = evaluate(model, test_data)
 print 'accuracy: %s' % metrics.accuracy_score(test_target, y_pred)
 ```
 
-With roughly 6000 features obtained with a significant terms aggregation, our model performs an accuracy of 79.1% which isn't far from the 82.9% accuracy reported by the paper. If we had selected only the top 600 features, the accuracy of the model drops to only 76% accuracy. This indicates that significant terms are pretty good at generating good set of features.
+With roughly 6000 features obtained with the significant terms aggregation, our model performs an accuracy of 79.1% which isn't far from the 82.9% accuracy reported by the paper. If we had selected only the top 600 features, the accuracy of the model drops to only 76% accuracy. This indicates that significant terms are pretty good at generating good set of features, at least for this dataset.
 
 ## Final Thoughts
 
-We could imagine having a server which would hold the models in memory. Then the client could request either to retrain a given model or to evaluate a given one. Under the hood the server would be pulling data from Elasticsearch using the Vectorize plugin.
+We could imagine having a server which would hold the models in memory. Then the client could request either to retrain a given model or to evaluate a given one. Under the hood the server would be pulling data from Elasticsearch using the Vectorize plugin, under a certain choice of vectorizers.
 
-However, it would be nice if the model could be directly stored in Elasticsearch, so that it can be called, for example, in a script or in a aggregation. The second part of this tutorial covers this use case. Again, we will be using the Vectorize plugin to ensure that the features used for training are the same as the ones used for evaluation.
+However, it would be nice if the model could be directly stored in Elasticsearch, so that it can be called, for example, in a script or in an aggregation. The second part of this tutorial covers this use case. Again, we will be using the Vectorize plugin to ensure that the features used for training are the same as the ones used for evaluation.
+
+[vectorize]: https://github.com/alexksikes/elasticsearch-vectorize/
+[docterm]: https://en.wikipedia.org/wiki/Document-term_matrix
+[sentiment140]: http://help.sentiment140.com/for-students
+[tutorial]: https://github.com/alexksikes/elasticsearch-vectorize/blob/master/tools/tutorial.py
+[scipy]: https://www.scipy.org/
+[scikit]: http://scikit-learn.org/
+[paper]: http://cs.stanford.edu/people/alecmgo/papers/TwitterDistantSupervision09.pdf
+[panda]: http://pandas.pydata.org/
+[r]: https://www.r-project.org/
+[mllib]: https://spark.apache.org/mllib/
+[python]: https://www.python.org
+[elasticsearch]: https://www.elastic.co/downloads/elasticsearch
