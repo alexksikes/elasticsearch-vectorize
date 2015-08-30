@@ -9,6 +9,8 @@ more precisely to some numerical value associated with each term such as tf or
 tf-idf. Such a matrix could then be used as a dataset and loaded in your
 favorite statistical environment.
 
+Checkout the [tutorial](TUTORIAL.md) for a complete example of usage. 
+
 Example of Usage
 ----------------
 
