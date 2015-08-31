@@ -2,7 +2,7 @@
 
 The first part of this tutorial covers how to use the [Vectorize plugin][vectorize] in order to obtain a dataset from data stored in Elasticsearch. That dataset can then be used by external data analytics tools such as [Panda][panda] or [R][r] or by machine learning packages such as [scikit-learn][scikit] or [MLlib][mllib]. The second part of this tutorial is focused on storing the trained model back in Elasticsearch, and then on using the Vectorize plugin again to evaluate the model in scripts or in aggregations.
 
-The Vectorize plugin is simply a mechanism to extract data as a [document-term matrix][docterm] in a consistent manner. What we mean by consistent is that if new features are added later on, then our specification will ensure that the same features will occupy the same column in the matrix. In order to show how the plugin works and why it is useful, we will train a classifier to distinguish between negative and positive sentiments. To this effect we will be using the [sentiment140][sentiment140] dataset.
+The Vectorize plugin is a mechanism to extract data as a [document-term matrix][docterm] in a consistent manner. What we mean by consistent is that if new features are added later on, then our specification will ensure that the same features will occupy the same column in the matrix. In order to show how the plugin works and why it is useful, we will train a classifier to distinguish between negative and positive sentiments. To this effect we will be using the [sentiment140][sentiment140] dataset.
 
 This tutorial is merely a more detailed explanation of the heavily commented Python [example][tutorial] that ships with the plugin. We can already take a quick look at the main steps involved:
 
@@ -29,7 +29,7 @@ y_pred = evaluate(model, test_data)
 print 'accuracy: %s' % metrics.accuracy_score(test_target, y_pred)
 ```
 
-So to summarize first we get a good set of features. Second, we create a vectorizer to obtain a document-term matrix from the indexed data. Third, using the vectorizer a dataset is generated. Fourth, a model is trained on this dataset. And fifth, the model is evaluated and we report on its accuracy. Each of these steps will be explained in greater details, but first let's get some necessary prerequisites. So let's get started!
+So to summarize first we generate a good set of features. Second, we create a vectorizer to obtain a document-term matrix from the indexed data. Third, using the vectorizer a dataset is generated. Fourth, a model is trained on this dataset. And fifth, the model is evaluated and we report on its accuracy. Each of these steps will be explained in greater details, but first let's get some necessary prerequisites. So let's get started!
 
 ## Prerequisites
 
@@ -92,11 +92,11 @@ And finally index each bulk:
 
 Now you should be all set!
 
-## Getting a Good Set of Features
+## Generating a Good Set of Features
 
-Before training our model it is crucial to come up with a good set of features. We could be using all the tokenized keywords in the `text` field. However, it would more desirable to select a smaller but more interesting set of features out of the gate. This would help reduce computation time but also improve on the performance of the model. Since we want to discriminate between negative and positive tweets, we could use a significant terms aggregation against each of the classes.
+Before training our model it is crucial to come up with a good set of features. We could be using all the tokenized keywords in the `text` field. However, it is desirable to select a smaller but more interesting set of features out of the gate. This will help reduce computation time and also improve the model’s performance. Since we want to discriminate between negative and positive tweets, we can use a significant terms aggregation against each of the classes.
 
-Such an aggregation on the `1` class (positive tweets) would look like this:
+Such an aggregation on the `1` class (positive tweets) looks like this:
 
 ```javascript
 curl -XGET 'http://localhost:9200/sentiment140/tweets/_search?search_type=count&pretty' -d '
@@ -224,7 +224,7 @@ Let's now move on to specifying how a [document-term matrix][docterm] should be 
 
 ## Creating a Vectorizer
 
-The next step consists of extracting a matrix from the sentiment140 index. We have already extracted a good set of features from the `text` field. The label on which to train is to be found in the `polarity` field. Let's see how such a vectorizer would look like for the top 10 positive keywords previously returned.
+The next step consists of extracting a matrix from the sentiment140 index. We have already extracted a good set of features from the `text` field. The label on which to train is to be found in the `polarity` field. We can create a vectorizer for the top 10 positive keywords like so:
 
 ```javascript
 {
@@ -242,7 +242,11 @@ The next step consists of extracting a matrix from the sentiment140 index. We ha
 }
 ```
 
-With this vectorizer 10 columns are reserved for the features found in the `text` field. These features are listed in order by an array of keywords following the `span` parameter. The extracted values if the document has the given keywords is provided by the `value` parameter. There are a couple of possible options here such as extracting the term frequencies or the document frequencies. However, since the tweets are rather short sized pieces of text, we ask for `binary` features. This means that a `1` is returned at this column if the document has the given feature, or `0` otherwise. Finally, the last column is occupied by the polarity of the tweet. Here the `span` parameter takes an integer, say n, which indicates to use the first n values found in the given field as is. Here, we specify to use the first (and only) value found in the `polarity` field. These values will serve as labels for supervised machine learning.
+With this vectorizer, 10 columns are reserved for the features found in the `text` field. These features are listed in order by an array of keywords following the `span` parameter. If the document has one or more of the given keywords, the `value` parameter specifies what to do with it.
+
+There are a couple of possible options here, such as extracting the term frequencies or the document frequencies. However, since the tweets are rather short sized pieces of text, we ask for `binary` features. This means that a `1` is returned at this column if the document has the given feature, or `0` otherwise.
+
+Finally, the last column is occupied by the polarity of the tweet. Here the `span` parameter takes an integer, say `n`, which indicates to use the first `n` values found in the given field as is. Here, we specify to use the first (and only) value found in the `polarity` field. These values will serve as labels for supervised machine learning.
 
 We can now try this vectorizer on a given tweet. The Vectorize plugin registers two endpoints. The first one, `_vectorize`, is used to generated the vector of a single document. While the second one, `_search_vectorize`, as we will see later, is used on a set of documents prescribed by a query.
 
@@ -260,7 +264,7 @@ On this given tweet:
     "query": "NO_QUERY",
     "text": "i love a great conversation...thank you. your a babe. ",
     "tweet_id": "2012313853",
-    "user": "tylerceerius"
+    "user": "alex1234"
   }
 }
 ```
@@ -326,7 +330,7 @@ Next let's see how to use `_search_vectorize` to generate the actual dataset. At
 
 ## Generating a Dataset
 
-Let's start by taking at the response look returned by using `_search_vectorize` on the small vectorizer made of the top 10 positive keywords.
+Let's start by taking a look at the response returned by using `_search_vectorize` on the small vectorizer made of the top 10 positive keywords:
 
 ```javascript
 GET sentiment140/tweets/_search_vectorize?sparse_format=coo
@@ -436,7 +440,7 @@ def get_train_test_split(dataset, test_size=0.33):
 train_data, test_data, train_target, test_target = get_train_test_split(dataset, test_size=0.33)
 ```
 
-Our machine learning algorithm is a Linear SVC because SVMs. We choose this method because SVMs are known to perform well in a high dimensional sparse feature space. Also we don't bother performing any parameter tuning whatsoever which would require using another validation set.
+Our machine learning algorithm is a Linear SVC. We choose this method because SVMs are known to perform well in a high dimensional sparse feature space. Also we don't bother performing any parameter tuning whatsoever which would require using another validation set.
 
 ```python
 # 4.b) use scikit-learn to train a model on the train set
@@ -466,7 +470,7 @@ y_pred = evaluate(model, test_data)
 print 'accuracy: %s' % metrics.accuracy_score(test_target, y_pred)
 ```
 
-With roughly 6000 features obtained with the significant terms aggregation, our model performs an accuracy of 79.1% which isn't far from the 82.9% accuracy reported by the paper. If we had selected only the top 600 features, the accuracy of the model drops to only 76% accuracy. This indicates that significant terms are pretty good at generating good set of features, at least for this dataset.
+With roughly 6000 features obtained from the significant terms aggregation, our model performs an accuracy of 79.1% which isn't far from the 82.9% accuracy reported by the paper. If we had selected only the top 600 features, the accuracy of the model drops to only 76% accuracy. This indicates that significant terms are pretty good at generating a robust set of features, at least for this dataset.
 
 ## Final Thoughts
 
