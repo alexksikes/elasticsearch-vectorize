@@ -109,6 +109,12 @@ bin/plugin install vectorize \
        --url file:target/releases/elasticsearch-vectorize-X.X.X-SNAPSHOT.zip
 ```
 
+Python Client
+-------------
+
+Support for Python is available [here](tools/vectorize.py). The client
+supports `vectorize`, `search`, `scroll`, and `scan`.
+
 License
 -------
 
