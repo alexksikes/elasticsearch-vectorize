@@ -51,9 +51,8 @@ De-compress it:
 
 Then create the index with the given mapping:
 
-```javascript
-curl -XPUT localhost:9200/sentiment140 -d '
-{
+```json
+curl -XPOST localhost:9200/sentiment140 -d '{
   "mappings": {
     "tweets": {
       "properties": {
@@ -99,7 +98,7 @@ Before training our model it is crucial to come up with a good set of features. 
 Such an aggregation on the `1` class (positive tweets) looks like this:
 
 ```javascript
-curl -XGET 'http://localhost:9200/sentiment140/tweets/_search?search_type=count&pretty' -d '
+GET sentiment140/tweets/_search?search_type=count&pretty
 {
   "query": {
     "term": {
