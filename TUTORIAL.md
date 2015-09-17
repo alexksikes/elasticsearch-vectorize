@@ -53,6 +53,21 @@ Then create the index with the given mapping:
 
 ```json
 curl -XPOST localhost:9200/sentiment140 -d '{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "my_analyzer": {
+          "type": "custom",
+          "tokenizer": "uax_url_email",
+          "filter": [
+            "standard",
+            "stop",
+            "lowercase"
+          ]
+        }
+      }
+    }
+  },
   "mappings": {
     "tweets": {
       "properties": {
